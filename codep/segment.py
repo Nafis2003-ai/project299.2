@@ -83,7 +83,7 @@ See :class:`pyannote.core.Segment` for the complete reference.
 import warnings
 from typing import Union, Optional, Tuple, List, Iterator, Iterable
 
-from pyannote.core.utils.types import Alignment
+from .utils.types import Alignment
 
 import numpy as np
 from dataclasses import dataclass
@@ -513,7 +513,8 @@ class SlidingWindow:
 
         elif mode == 'center':
             return int(np.rint((from_duration / self.step)))
-    from pyannote.core.timeline import Timeline
+    from pyannote.core.timeline import Timeline    
+
     def crop(self, focus: Union[Segment, 'Timeline'],
              mode: Alignment = 'loose',
              fixed: Optional[float] = None,
@@ -544,6 +545,7 @@ class SlidingWindow:
         """
 
         from pyannote.core.timeline import Timeline
+
 
         if not isinstance(focus, (Segment, Timeline)):
             msg = '"focus" must be a `Segment` or `Timeline` instance.'

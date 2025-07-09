@@ -3,49 +3,46 @@ from pydub import AudioSegment
 import whisper
 import numpy as np
 import gc
+import os
 
+
+HF_TOKEN = "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"  
+path=input("Enter the path of the audio")
+# Initialize diarization pipeline
 pipeline = Pipeline.from_pretrained(
-    "pyannote/speaker-diarization", use_auth_token="register to huggingface website to get the access token")
+    "pyannote/speaker-diarization",
+    use_auth_token=HF_TOKEN
+)
 
+# Run diarization
+diarization = pipeline(path)
 
-def read(k):
-    y = np.array(k.get_array_of_samples())
-    return np.float32(y) / 32768
-
-
-def millisec(timeStr):
-    spl = timeStr.split(":")
-    return (int)((int(spl[0]) * 60 * 60 + int(spl[1]) * 60 + float(spl[2])) * 1000)
-
-
-k = str(pipeline(
-    "Desktop/projects_python/tran_diar/audio.mp3")).split('\n')
-
-del pipeline
-gc.collect()
-
-audio = AudioSegment.from_mp3(
-    "Desktop/projects_python/tran_diar/audio.mp3")
+# Load audio using pydub
+audio = AudioSegment.from_mp3(path)
 audio = audio.set_frame_rate(16000)
 
+# Load Whisper
 model = whisper.load_model("small.en")
 
-for l in range(len(k)):
 
-    j = k[l].split(" ")
-    start = int(millisec(j[1]))
-    end = int(millisec(j[3]))
+def to_millisec(timestamp):
+    return int(float(timestamp) * 1000)
 
-    tr = read(audio[start:end])
 
-    result = model.transcribe(tr, fp16=False)
+# Helper: convert pydub segment to numpy float32 array
+def to_float_array(segment):
+    arr = np.array(segment.get_array_of_samples())
+    return arr.astype(np.float32) / 32768
 
-    f = open("Desktop/projects_python/tran_diar/tr_file.txt", "a")
-    f.write(f'\n[ {j[1]} -- {j[3]} ] {j[6]} : {result["text"]}')
-    f.close()
+# Process segments
+with open("../results/spd.txt", "w", encoding="utf-8") as f:
+    for turn, _, speaker in diarization.itertracks(yield_label=True):
+        start = to_millisec(turn.start)
+        end = to_millisec(turn.end)
+        segment = audio[start:end]
+        audio_array = to_float_array(segment)
+        result = model.transcribe(audio_array, fp16=False)
+        f.write(f"\n[ {turn.start:.2f} -- {turn.end:.2f} ] {speaker} : {result['text']}")
+        del result, segment, audio_array
+        gc.collect()
 
-    del f
-    del result
-    del tr
-    del j
-    gc.collect()
