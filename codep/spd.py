@@ -6,7 +6,7 @@ import gc
 import os
 
 
-HF_TOKEN = "hugging face token"  
+HF_TOKEN = "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"  
 path=input("Enter the path of the audio")
 # Initialize diarization pipeline
 pipeline = Pipeline.from_pretrained(
