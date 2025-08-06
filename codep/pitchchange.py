@@ -1,52 +1,74 @@
 import librosa
 import numpy as np
 import soundfile as sf
+import argparse
+import os
 
-# === File Paths ===
-# IMPORTANT: Replace these paths with the actual paths to your files.
-# Path to your input audio file. This should be a WAV file (1 minute or less).
-input_path = input("Enter input file path")
-# Path where the pitch-shifted audio will be saved. The output will be a WAV file.
-output_path = "E:\python\\results\pitch.wav"
+# --- Command-Line Argument Parsing ---
+parser = argparse.ArgumentParser(description="Pitch Shift Audio File")
+parser.add_argument(
+    "-i", "--input_name",
+    type=str,
+    required=True,
+    help="Name of the input audio file (e.g., 'my_voice.wav'). Must be in data\\pitch_shifter_inputs\\"
+)
+parser.add_argument(
+    "-n", "--n_steps",
+    type=int,
+    default=5, # Default shift of 5 semitones
+    help="Number of semitones to shift the pitch. Positive for higher, negative for lower. Default is 5."
+)
+parser.add_argument(
+    "-o", "--output_name",
+    type=str,
+    default=None, # If not provided, a name will be generated
+    help="Optional: Name for the output pitch-shifted audio file (e.g., 'shifted_voice.wav'). If not provided, a name will be generated."
+)
+args = parser.parse_args()
 
-# === Voice Changer Parameters ===
+# --- Define Project Root and Paths ---
+# This script is in E:\New Volume\project\codep\
+# So, PROJECT_ROOT is E:\New Volume\project\
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Positive values increase pitch (e.g., 5 semitones for a higher voice).
-# Negative values decrease pitch (e.g., -5 semitones for a deeper voice).
-# A semitone is the smallest musical interval. 12 semitones is one octave.
-semitones_to_shift = 10 
+# Construct the full path to the input audio file
+input_audio_dir = os.path.join(project_root, "data", "pitch_shifter_inputs")
+input_path = os.path.join(input_audio_dir, args.input_name)
+
+# Construct the output directory
+output_audio_dir = os.path.join(project_root, "results", "pitch_shifted_audio")
+os.makedirs(output_audio_dir, exist_ok=True) # Create the output folder if it doesn't exist
+
+# Determine the output file name
+if args.output_name:
+    output_filename = args.output_name
+else:
+    # Generate a default output name based on input and shift
+    input_base_name = os.path.splitext(os.path.basename(args.input_name))[0]
+    output_filename = f"{input_base_name}_shifted_{args.n_steps}st.wav"
+
+output_path = os.path.join(output_audio_dir, output_filename)
+
 
 # === Load Input Audio ===
 try:
-    # Load the audio file using librosa.
-    # sr=None tells librosa to use the original sample rate of the audio file.
-    # mono=True converts the audio to a single channel if it's stereo, which is usually required for processing.
     audio, sr = librosa.load(input_path, sr=None, mono=True)
     print(f"✅ Successfully loaded audio from {input_path} with sample rate {sr}.")
 except Exception as e:
-    # If there's an error loading the audio (e.g., file not found, corrupted), print an error and exit.
     print(f"❌ Failed to load audio from {input_path}: {e}")
-    exit() # Exit the script as it cannot proceed without input audio.
+    exit()
 
 # === Perform Pitch Shifting ===
 try:
-    # Apply pitch shifting using librosa's effects module.
-    # `y`: The input audio time series (the 'audio' variable we loaded).
-    # `sr`: The sample rate of the audio.
-    # `n_steps`: The number of semitones to shift the pitch.
-    pitch_shifted_audio = librosa.effects.pitch_shift(y=audio, sr=sr, n_steps=semitones_to_shift)
-    print(f"✅ Pitch shifting completed by {semitones_to_shift} semitones.")
+    pitch_shifted_audio = librosa.effects.pitch_shift(y=audio, sr=sr, n_steps=args.n_steps)
+    print(f"✅ Pitch shifting completed by {args.n_steps} semitones.")
 except Exception as e:
-    # Catch any errors that occur during the pitch shifting process.
     print(f"❌ Pitch shifting failed: {e}")
-    exit() # Exit the script if pitch shifting fails.
+    exit()
 
 # === Save Output ===
 try:
-    # Save the pitch-shifted audio to the specified output path as a WAV file.
-    # Ensure the output audio is saved with the original sample rate (`sr`).
     sf.write(output_path, pitch_shifted_audio, sr)
-    print(f"✅ Voice changing complete! Saved to {output_path}")
+    print(f"✅ Pitch shifting complete! Saved to {output_path}")
 except Exception as e:
-    # If there's an error saving the output audio, print an error.
     print(f"❌ Failed to save output to {output_path}: {e}")
