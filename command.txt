@@ -1,0 +1,7 @@
+python svc_infer.py -s "input_audio" -spk "GeorgeBush"
+python emotion_detection.py -a "audio_file"
+python pitchchange.py -i "input_audio"
+py -3.11 stt.py -i "input_audio"
+py -3.11 tts.py -i "input_text"
+py -3.11 spd.py -i "input_audio"
+
